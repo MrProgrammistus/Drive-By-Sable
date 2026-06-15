@@ -1,13 +1,6 @@
 package edn.lakeopossmc.drivebysabletweaks;
 
-import edn.stratodonut.drivebywire.DriveByWireMod;
-import edn.stratodonut.drivebywire.WireBlocks;
-import edn.stratodonut.drivebywire.items.WireCutterItem;
-import edn.stratodonut.drivebywire.items.WireItem;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
