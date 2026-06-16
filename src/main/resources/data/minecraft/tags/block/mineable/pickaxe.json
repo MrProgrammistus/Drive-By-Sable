@@ -1,0 +1,7 @@
+{
+  "replace": false,
+  "values": [
+    "drivebywire:controller_hub",
+    "drivebywire:tweaked_controller_hub"
+  ]
+}
