@@ -58,7 +58,7 @@ public class DirectionalControllerHubBlock extends FaceAttachedHorizontalDirecti
 
     @Override
     protected MapCodec<? extends FaceAttachedHorizontalDirectionalBlock> codec() {
-        return null;
+        return MapCodec.unit(() -> this);
     }
 
     @Nullable
@@ -141,9 +141,7 @@ public class DirectionalControllerHubBlock extends FaceAttachedHorizontalDirecti
     }
 
     @Override
-    protected BlockState updateShape(BlockState state, Direction facing, BlockState facingState, LevelAccessor level, BlockPos currentPos, BlockPos facingPos) {
-        return state;
-    }
+    protected BlockState updateShape(BlockState state, Direction facing, BlockState facingState, LevelAccessor level, BlockPos currentPos, BlockPos facingPos) { return state; }
 
     @Override
     public List<String> wire$getChannels() {

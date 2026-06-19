@@ -6,7 +6,7 @@
       "entries": [
         {
           "type": "minecraft:item",
-          "name": "drivebywire:tweaked_controller_hub"
+          "name": "drivebysabletweaks:cable_hub"
         }
       ],
       "conditions": [

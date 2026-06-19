@@ -6,10 +6,10 @@ import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
 public final class WireTweaksItems {
-    public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems("drivebywire");
+    public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems("drivebysabletweaks");
 
-    public static final DeferredItem<BlockItem> CONTROLLER_HUB_BLOCK = ITEMS.registerSimpleBlockItem("controller_hub", WireTweaksBlocks.CABLE_HUB);
-    public static final DeferredItem<BlockItem> TWEAKED_CONTROLLER_HUB_BLOCK = ITEMS.registerSimpleBlockItem("tweaked_controller_hub", WireTweaksBlocks.ADVANCED_CABLE_HUB);
+    public static final DeferredItem<BlockItem> CONTROLLER_HUB_BLOCK = ITEMS.registerSimpleBlockItem("cable_hub", WireTweaksBlocks.CABLE_HUB);
+    public static final DeferredItem<BlockItem> TWEAKED_CONTROLLER_HUB_BLOCK = ITEMS.registerSimpleBlockItem("advanced_cable_hub", WireTweaksBlocks.ADVANCED_CABLE_HUB);
 
     private WireTweaksItems() {
     }

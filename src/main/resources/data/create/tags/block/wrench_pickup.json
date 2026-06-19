@@ -1,7 +1,7 @@
 {
   "values": [
-    "drivebywire:controller_hub",
-    "drivebywire:tweaked_controller_hub",
+    "drivebysabletweaks:cable_hub",
+    "drivebysabletweaks:advanced_cable_hub",
     "drivebywire:backup_block"
   ]
 }

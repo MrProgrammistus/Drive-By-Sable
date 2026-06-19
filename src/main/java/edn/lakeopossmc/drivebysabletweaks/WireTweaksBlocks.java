@@ -10,14 +10,14 @@ import net.neoforged.neoforge.registries.DeferredBlock;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
 public final class WireTweaksBlocks {
-    public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks("drivebywire");
+    public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks("drivebysabletweaks");
 
     public static final DeferredBlock<DirectionalControllerHubBlock> CABLE_HUB = BLOCKS.register(
-            "controller_hub",
+            "cable_hub",
             () -> new DirectionalControllerHubBlock(commonProperties())
     );
     public static final DeferredBlock<DirectionalTweakedControllerHubBlock> ADVANCED_CABLE_HUB = BLOCKS.register(
-            "tweaked_controller_hub",
+            "advanced_cable_hub",
             () -> new DirectionalTweakedControllerHubBlock(commonProperties())
     );
 
