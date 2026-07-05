@@ -16,14 +16,14 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.state.BlockState;
 
-import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
 
 public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
 
-    private Set<String> connectedChannels = Collections.emptySet();
+    private final Set<String> connectedChannels = new HashSet<>();
 
     private static CableTypewriterHubBlockEntity clientInstance;
 
@@ -41,14 +41,23 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
 
     private void updateConnectedChannels(final ServerLevel level) {
         final CableNetworkManager manager = CableNetworkManager.get(level);
-        final Set<String> updated = new HashSet<>();
-        for (final String channel : CableTypewriterHubServerHandler.CHANNELS) {
-            if (manager.hasSinks(this.getBlockPos(), channel)) {
-                updated.add(channel);
+        boolean changed = false;
+
+        final Iterator<String> existing = this.connectedChannels.iterator();
+        while (existing.hasNext()) {
+            if (!manager.hasSinks(this.getBlockPos(), existing.next())) {
+                existing.remove();
+                changed = true;
             }
         }
-        if (!updated.equals(this.connectedChannels)) {
-            this.connectedChannels = updated;
+
+        for (final String channel : CableTypewriterHubServerHandler.CHANNELS) {
+            if (manager.hasSinks(this.getBlockPos(), channel) && this.connectedChannels.add(channel)) {
+                changed = true;
+            }
+        }
+
+        if (changed) {
             this.sendData();
         }
     }
@@ -110,12 +119,11 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
                         final boolean clientPacket) {
         super.read(tag, registries, clientPacket);
         if (clientPacket && tag.contains("ConnectedChannels")) {
-            final Set<String> channels = new HashSet<>();
+            this.connectedChannels.clear();
             final ListTag list = tag.getList("ConnectedChannels", 8);
             for (int i = 0; i < list.size(); i++) {
-                channels.add(list.getString(i));
+                this.connectedChannels.add(list.getString(i));
             }
-            this.connectedChannels = channels;
         }
     }
 

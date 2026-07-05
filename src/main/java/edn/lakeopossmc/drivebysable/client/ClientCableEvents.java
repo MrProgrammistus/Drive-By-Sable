@@ -11,6 +11,7 @@ import edn.lakeopossmc.drivebysable.network.CableTypewriterHubKeyPacket;
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
@@ -20,8 +21,12 @@ import org.lwjgl.glfw.GLFW;
 @EventBusSubscriber(modid = DriveBySableMod.MOD_ID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public final class ClientCableEvents {
 
+    private static final boolean SIMULATED_LOADED = ModList.get().isLoaded("simulated");
+
     @SubscribeEvent
     public static void onRegisterRenderers(final EntityRenderersEvent.RegisterRenderers event) {
+        if (!SIMULATED_LOADED) return;
+
         event.registerBlockEntityRenderer(
                 CableBlockEntities.CABLE_TYPEWRITER_HUB.get(),
                 LinkedTypewriterRenderer::new);
@@ -29,6 +34,7 @@ public final class ClientCableEvents {
 
     @SubscribeEvent
     public static void onKeyInput(final InputEvent.Key event) {
+        if (!SIMULATED_LOADED) return;
         if (event.getAction() == GLFW.GLFW_REPEAT) return;
 
         final CableTypewriterHubBlockEntity be = CableTypewriterHubBlockEntity.getClientInstance();
@@ -64,7 +70,6 @@ public final class ClientCableEvents {
         }
     }
 
-    // Mirrors LinkedTypewriterInteractionHandler.presetKeys + number rows
     private static int keyToRenderIndex(final int keycode) {
         return switch (keycode) {
             case 81, 49, 321  -> 0;   // Q, 1, KP_1

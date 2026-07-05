@@ -18,7 +18,9 @@
     "compat.tweaked.MixinTweakedControllerButtonPacket",
     "compat.tweaked.MixinTweakedControllerStopLecternPacket",
     "compat.MixinLinkedTypewriterItemBindHandler",
-    "compat.MixinTypewriterSaveKeyToItemPacket"
+    "compat.MixinTypewriterSaveKeyToItemPacket",
+    "compat.dashpanels.MixinPanelBlock",
+    "compat.dashpanels.MixinPanelBlockEntity"
   ],
   "client": [
     "client.MixinLinkedControllerClientHandlerAccessor",

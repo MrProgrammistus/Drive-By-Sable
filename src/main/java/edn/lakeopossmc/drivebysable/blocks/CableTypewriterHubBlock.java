@@ -189,12 +189,12 @@ public class CableTypewriterHubBlock extends HorizontalDirectionalBlock
     }
 
     @Override
-    public List<String> cable$getChannels() {
+    public List<String> cable$getChannels(final Level level, final BlockPos pos) {
         return CableTypewriterHubServerHandler.CHANNELS;
     }
 
     @Override
-    public String cable$nextChannel(final String current, final boolean forward) {
+    public String cable$nextChannel(final Level level, final BlockPos pos, final String current, final boolean forward) {
         final List<String> channels = CableTypewriterHubServerHandler.CHANNELS;
         int idx = channels.indexOf(current);
         if (idx == -1) return channels.get(0);

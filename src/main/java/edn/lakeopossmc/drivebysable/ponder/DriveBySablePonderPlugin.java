@@ -28,12 +28,15 @@ public class DriveBySablePonderPlugin extends CreatePonderPlugin {
                 .item(CableItems.CABLE_HUB_BLOCK.get(), true, false)
                 .register();
 
-        helper.addToTag(DRIVE_BY_SABLE_TAG)
+        final var tag = helper.addToTag(DRIVE_BY_SABLE_TAG)
                 .add(CableItems.CABLE.getId())
                 .add(CableItems.CABLE_CUTTER.getId())
                 .add(CableItems.CABLE_HUB_BLOCK.getId())
                 .add(CableItems.ADVANCED_CABLE_HUB_BLOCK.getId())
-                .add(CableItems.CABLE_TYPEWRITER_HUB.getId())
                 .add(CableItems.BACKUP_DRIVE.getId());
+
+        if (CableItems.CABLE_TYPEWRITER_HUB != null) {
+            tag.add(CableItems.CABLE_TYPEWRITER_HUB.getId());
+        }
     }
 }

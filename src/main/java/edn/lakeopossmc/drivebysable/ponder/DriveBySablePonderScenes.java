@@ -25,8 +25,10 @@ public class DriveBySablePonderScenes {
                 .addStoryBoard("advanced_cable_hub2", CableScenes::advancedCableHubLecternIntro,
                         DriveBySablePonderPlugin.DRIVE_BY_SABLE_TAG);
 
-        registry.forComponents(CableItems.CABLE_TYPEWRITER_HUB.getId())
-                .addStoryBoard("cable_typewriter_hub1", CableScenes::cableTypewriterHubIntro,
-                        DriveBySablePonderPlugin.DRIVE_BY_SABLE_TAG);
+        if (CableItems.CABLE_TYPEWRITER_HUB != null) {
+            registry.forComponents(CableItems.CABLE_TYPEWRITER_HUB.getId())
+                    .addStoryBoard("cable_typewriter_hub1", CableScenes::cableTypewriterHubIntro,
+                            DriveBySablePonderPlugin.DRIVE_BY_SABLE_TAG);
+        }
     }
 }

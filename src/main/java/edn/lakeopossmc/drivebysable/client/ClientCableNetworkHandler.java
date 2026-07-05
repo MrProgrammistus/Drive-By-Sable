@@ -70,10 +70,10 @@ public final class ClientCableNetworkHandler {
         final Item eventItem = event.getItemStack().getItem();
         final BlockState hitBlock = event.getLevel().getBlockState(event.getHitVec().getBlockPos());
         if (eventItem instanceof CableItem) {
-            event.setUseBlock(TriState.FALSE); // don't interact with block if connecting cable
+            event.setUseBlock(TriState.FALSE);
         }
         if ((eventItem instanceof LinkedControllerItem && hitBlock.is(CableBlocks.CABLE_HUB) || (eventItem instanceof TweakedControllerDuck && hitBlock.is(CableBlocks.ADVANCED_CABLE_HUB)))) {
-            event.setUseItem(TriState.FALSE); // don't start using controller if binding to hub
+            event.setUseItem(TriState.FALSE);
         }
         if (event.getSide().isServer()) {
             return;
@@ -118,7 +118,7 @@ public final class ClientCableNetworkHandler {
             return;
         }
 
-        changeChannel(player.level().getBlockState(selectedSource).getBlock(), delta > 0);
+        changeChannel(player.level(), selectedSource, delta > 0);
         event.setCanceled(true);
     }
 
@@ -131,22 +131,26 @@ public final class ClientCableNetworkHandler {
             return;
         }
 
-        final Map<Long, Map<String, Set<CableNetworkSink>>> latestNetwork = CableNetworkManager.get(level).getNetwork();
-        if (!latestNetwork.equals(currentNetwork)) {
-            currentNetwork = latestNetwork;
-            if (pendingSchematicSyncReason != null) {
-                DriveBySableMod.LOGGER.info(
-                    "[schematic-debug] Client cable mirror refreshed after {}: {} sources / {} connections.",
-                    pendingSchematicSyncReason,
-                    currentNetwork.size(),
-                    countConnections(currentNetwork)
-                );
-                pendingSchematicSyncReason = null;
+        final ItemStack mainHand = player.getMainHandItem();
+        final boolean holdingCableTool = mainHand.is(CableItems.CABLE.get()) || mainHand.is(CableItems.CABLE_CUTTER.get());
+
+        if (holdingCableTool || pendingSchematicSyncReason != null) {
+            final Map<Long, Map<String, Set<CableNetworkSink>>> latestNetwork = CableNetworkManager.get(level).getNetwork();
+            if (!latestNetwork.equals(currentNetwork)) {
+                currentNetwork = latestNetwork;
+                if (pendingSchematicSyncReason != null) {
+                    DriveBySableMod.LOGGER.info(
+                            "[schematic-debug] Client cable mirror refreshed after {}: {} sources / {} connections.",
+                            pendingSchematicSyncReason,
+                            currentNetwork.size(),
+                            countConnections(currentNetwork)
+                    );
+                    pendingSchematicSyncReason = null;
+                }
             }
         }
 
-        final ItemStack mainHand = player.getMainHandItem();
-        if (!mainHand.is(CableItems.CABLE.get()) && !mainHand.is(CableItems.CABLE_CUTTER.get())) {
+        if (!holdingCableTool) {
             clearSource();
             return;
         }
@@ -175,10 +179,10 @@ public final class ClientCableNetworkHandler {
     public static void requestSchematicSync(final String reason) {
         pendingSchematicSyncReason = reason;
         DriveBySableMod.LOGGER.info(
-            "[schematic-debug] Requesting cable mirror sync for {}. Current client mirror: {} sources / {} connections.",
-            reason,
-            currentNetwork.size(),
-            countConnections(currentNetwork)
+                "[schematic-debug] Requesting cable mirror sync for {}. Current client mirror: {} sources / {} connections.",
+                reason,
+                currentNetwork.size(),
+                countConnections(currentNetwork)
         );
         syncManager();
     }
@@ -186,7 +190,7 @@ public final class ClientCableNetworkHandler {
     private static void handleCableUse(final Player player, final ItemStack heldItem, final Level level, final BlockPos pos, final Direction face) {
         if (selectedSource == null) {
             selectedSource = pos.immutable();
-            changeChannel(level.getBlockState(selectedSource).getBlock(), true);
+            changeChannel(level, selectedSource, true);
             syncManager();
             return;
         }
@@ -212,10 +216,11 @@ public final class ClientCableNetworkHandler {
         syncCooldown = 20;
     }
 
-    private static void changeChannel(final Block source, final boolean forward) {
+    private static void changeChannel(final Level level, final BlockPos pos, final boolean forward) {
+        final Block source = level.getBlockState(pos).getBlock();
         currentChannel = source instanceof MultiChannelCableSource channelSource
-            ? channelSource.cable$nextChannel(currentChannel, forward)
-            : CableNetworkManager.WORLD_CHANNEL;
+                ? channelSource.cable$nextChannel(level, pos, currentChannel, forward)
+                : CableNetworkManager.WORLD_CHANNEL;
 
         if (currentChannel == null) {
             currentChannel = CableNetworkManager.WORLD_CHANNEL;
@@ -223,23 +228,23 @@ public final class ClientCableNetworkHandler {
 
         final Player player = Minecraft.getInstance().player;
         if (player != null) {
-                // 普通通道：强制从 CHANNEL_TO_LANG_KEY 映射表中查找
-                // 找不到则兜底显示通道原始名称，避免客户端报错
-                String langKey = TweakedControllerCableServerHandler.CHANNEL_TO_LANG_KEY
-                        .getOrDefault(currentChannel,currentChannel);
-                Component displayName = Component.translatable(langKey);
-                player.displayClientMessage(
-                        Component.translatable("drivebysable.cable.channel.selected", displayName),
-                        true
-                );
+            // 普通通道：强制从 CHANNEL_TO_LANG_KEY 映射表中查找
+            // 找不到则兜底显示通道原始名称，避免客户端报错
+            String langKey = TweakedControllerCableServerHandler.CHANNEL_TO_LANG_KEY
+                    .getOrDefault(currentChannel,currentChannel);
+            Component displayName = Component.translatable(langKey);
+            player.displayClientMessage(
+                    Component.translatable("drivebysable.cable.channel.selected", displayName),
+                    true
+            );
         }
     }
 
     private static void drawOutlines(
-        final Level level,
-        final BlockPos selectedSource,
-        final Map<Long, Map<String, Set<CableNetworkSink>>> network,
-        final String activeChannel
+            final Level level,
+            final BlockPos selectedSource,
+            final Map<Long, Map<String, Set<CableNetworkSink>>> network,
+            final String activeChannel
     ) {
         for (final Map.Entry<Long, Map<String, Set<CableNetworkSink>>> entry : network.entrySet()) {
             final BlockPos source = BlockPos.of(entry.getKey());
@@ -250,12 +255,12 @@ public final class ClientCableNetworkHandler {
                     final boolean active = channelEntry.getKey().equals(activeChannel);
                     for (final CableNetworkSink sink : channelEntry.getValue()) {
                         drawConnection(
-                            level,
-                            source,
-                            BlockPos.of(sink.position()),
-                            Direction.from3DDataValue(sink.direction()),
-                            active ? LineColor.SINK.SELECTED.getColor() : LineColor.SINK.SAME_SOURCE_DIFFERENT_CHANNEL.getColor(),
-                            active ? LineColor.CABLE.SELECTED.getColor() : LineColor.CABLE.SAME_SOURCE_DIFFERENT_CHANNEL.getColor()
+                                level,
+                                source,
+                                BlockPos.of(sink.position()),
+                                Direction.from3DDataValue(sink.direction()),
+                                active ? LineColor.SINK.SELECTED.getColor() : LineColor.SINK.SAME_SOURCE_DIFFERENT_CHANNEL.getColor(),
+                                active ? LineColor.CABLE.SELECTED.getColor() : LineColor.CABLE.SAME_SOURCE_DIFFERENT_CHANNEL.getColor()
                         );
                     }
                 }
@@ -266,37 +271,37 @@ public final class ClientCableNetworkHandler {
     }
 
     private static void drawConnection(
-        final Level level,
-        final BlockPos start,
-        final BlockPos end,
-        final Direction direction,
-        final int faceColor,
-        final int cableColor
+            final Level level,
+            final BlockPos start,
+            final BlockPos end,
+            final Direction direction,
+            final int faceColor,
+            final int cableColor
     ) {
         drawOutlineFace(end, direction, faceColor);
         Outliner.getInstance()
-            .showLine(
-                net.createmod.catnip.data.Pair.of("cableConnection", net.createmod.catnip.data.Pair.of(end, direction)),
-                Vec3.atCenterOf(start),
-                Vec3.atCenterOf(end).add(Vec3.atLowerCornerOf(direction.getNormal()).scale(0.5D))
-            )
-            .colored(cableColor);
+                .showLine(
+                        net.createmod.catnip.data.Pair.of("cableConnection", net.createmod.catnip.data.Pair.of(end, direction)),
+                        Vec3.atCenterOf(start),
+                        Vec3.atCenterOf(end).add(Vec3.atLowerCornerOf(direction.getNormal()).scale(0.5D))
+                )
+                .colored(cableColor);
     }
 
     private static void drawOutlineFace(final BlockPos pos, final Direction direction, final int color) {
         Outliner.getInstance()
-            .showAABB(net.createmod.catnip.data.Pair.of("cableFace", BlockFace.of(pos, direction)), FaceOutlines.getOutline(direction).move(pos))
-            .colored(color)
-            .lineWidth(0.0625F);
+                .showAABB(net.createmod.catnip.data.Pair.of("cableFace", BlockFace.of(pos, direction)), FaceOutlines.getOutline(direction).move(pos))
+                .colored(color)
+                .lineWidth(0.0625F);
     }
 
     private static void drawOutline(final Level level, final BlockPos pos, final int color) {
         final BlockState state = level.getBlockState(pos);
         final AABB box = state.getShape(level, pos).isEmpty() ? UNIT_CUBE : state.getShape(level, pos).bounds();
         Outliner.getInstance()
-            .showAABB(net.createmod.catnip.data.Pair.of("cableBlock", pos), box.move(pos))
-            .colored(color)
-            .lineWidth(0.0625F);
+                .showAABB(net.createmod.catnip.data.Pair.of("cableBlock", pos), box.move(pos))
+                .colored(color)
+                .lineWidth(0.0625F);
     }
 
     private static void notifyPlayer(final Player player, final String message) {

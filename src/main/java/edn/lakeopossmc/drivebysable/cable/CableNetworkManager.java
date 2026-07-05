@@ -103,6 +103,14 @@ public final class CableNetworkManager {
         return get(level).removeAllFromSourceInternal(serverPlayer, level, source);
     }
 
+    public static boolean removeAllFromSourceChannel(final Level level, final BlockPos source, final String channel) {
+        return get(level).removeAllFromSourceChannelInternal(level, source, channel);
+    }
+
+    public static boolean remapSourceChannel(final Level level, final BlockPos source, final String oldChannel, final String newChannel) {
+        return get(level).remapSourceChannelInternal(level, source, oldChannel, newChannel);
+    }
+
     public static void trySetSignalAt(final Level level, final BlockPos source, final String channel, final int value) {
         get(level).setSource(level, source, channel, value);
     }
@@ -222,6 +230,74 @@ public final class CableNetworkManager {
             removeSinkReference(sourceKey, channel, sink);
             applySignalToSink(level, sourceKey, channel, sink, 0);
         }));
+        dirtyMarker.run();
+        return true;
+    }
+
+    public boolean removeAllFromSourceChannelInternal(final Level level, final BlockPos source, final String channel) {
+        final long sourceKey = source.asLong();
+        final Map<String, Set<CableNetworkSink>> perChannel = sinks.get(sourceKey);
+        if (perChannel == null) {
+            return false;
+        }
+
+        final Set<CableNetworkSink> sinksOnChannel = perChannel.remove(channel);
+        if (sinksOnChannel == null) {
+            return false;
+        }
+
+        sinksOnChannel.forEach(sink -> {
+            removeSinkReference(sourceKey, channel, sink);
+            applySignalToSink(level, sourceKey, channel, sink, 0);
+        });
+
+        if (perChannel.isEmpty()) {
+            sinks.remove(sourceKey);
+        }
+
+        final Map<String, Integer> values = sourceValues.get(sourceKey);
+        if (values != null) {
+            values.remove(channel);
+            if (values.isEmpty()) {
+                sourceValues.remove(sourceKey);
+            }
+        }
+
+        dirtyMarker.run();
+        return true;
+    }
+
+    public boolean remapSourceChannelInternal(final Level level, final BlockPos source, final String oldChannel, final String newChannel) {
+        final long sourceKey = source.asLong();
+        final Map<String, Set<CableNetworkSink>> perChannel = sinks.get(sourceKey);
+        if (perChannel == null) {
+            return false;
+        }
+
+        final Set<CableNetworkSink> sinksOnChannel = perChannel.remove(oldChannel);
+        if (sinksOnChannel == null) {
+            return false;
+        }
+
+        final int currentSignal = getCurrentSignal(level, source, oldChannel);
+        final Set<CableNetworkSink> destination = perChannel.computeIfAbsent(newChannel, ignored -> new HashSet<>());
+        for (final CableNetworkSink sink : sinksOnChannel) {
+            removeSinkReference(sourceKey, oldChannel, sink);
+            applySignalToSink(level, sourceKey, oldChannel, sink, 0);
+
+            destination.add(sink);
+            addSinkReference(sourceKey, newChannel, sink);
+            applySignalToSink(level, sourceKey, newChannel, sink, currentSignal);
+        }
+
+        final Map<String, Integer> values = sourceValues.get(sourceKey);
+        if (values != null) {
+            final Integer value = values.remove(oldChannel);
+            if (value != null) {
+                values.put(newChannel, value);
+            }
+        }
+
         dirtyMarker.run();
         return true;
     }

@@ -104,12 +104,12 @@ public abstract class AbstractDirectionalHubBlock extends FaceAttachedHorizontal
 
     // --- CHANNEL LOGIC (MOSTLY UNCHANGED FROM OG DRIVEBYWIRE) --- //
     @Override
-    public List<String> cable$getChannels() {
+    public List<String> cable$getChannels(final Level level, final BlockPos pos) {
         return channels();
     }
 
     @Override
-    public String cable$nextChannel(final String current, final boolean forward) {
+    public String cable$nextChannel(final Level level, final BlockPos pos, final String current, final boolean forward) {
         final List<String> channels = channels();
         final int currentIndex = channels.indexOf(current);
         if (currentIndex == -1) {

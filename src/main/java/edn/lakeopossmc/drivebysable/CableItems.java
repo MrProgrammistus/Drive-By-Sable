@@ -7,16 +7,19 @@ import edn.lakeopossmc.drivebysable.items.NetworkBackupDriveItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
+
+import javax.annotation.Nullable;
 
 public final class CableItems {
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(DriveBySableMod.MOD_ID);
 
     public static final DeferredItem<CableItem> CABLE = ITEMS.register("cable", () -> new CableItem(new Item.Properties()));
     public static final DeferredItem<CableCutterItem> CABLE_CUTTER = ITEMS.register(
-        "cable_cutter",
-        () -> new CableCutterItem(new Item.Properties().stacksTo(1))
+            "cable_cutter",
+            () -> new CableCutterItem(new Item.Properties().stacksTo(1))
     );
     public static final DeferredItem<Item> CABLE_IO_BUS = ITEMS.registerSimpleItem("cable_io_bus");
     public static final DeferredItem<Item> INCOMPLETE_CABLE_IO_BUS = ITEMS.registerSimpleItem("incomplete_cable_io_bus");
@@ -26,13 +29,17 @@ public final class CableItems {
     );
     public static final DeferredItem<BlockItem> CABLE_HUB_BLOCK = ITEMS.registerSimpleBlockItem("cable_hub", CableBlocks.CABLE_HUB);
     public static final DeferredItem<BlockItem> ADVANCED_CABLE_HUB_BLOCK = ITEMS.registerSimpleBlockItem(
-        "advanced_cable_hub",
-        CableBlocks.ADVANCED_CABLE_HUB
+            "advanced_cable_hub",
+            CableBlocks.ADVANCED_CABLE_HUB
     );
-    public static final DeferredItem<CableTypewriterHubItem> CABLE_TYPEWRITER_HUB = ITEMS.register(
-            "cable_typewriter_hub",
-            () -> new CableTypewriterHubItem(CableBlocks.CABLE_TYPEWRITER_HUB.get(), new Item.Properties())
-    );
+
+    @Nullable
+    public static final DeferredItem<CableTypewriterHubItem> CABLE_TYPEWRITER_HUB =
+            ModList.get().isLoaded("simulated")
+                    ? ITEMS.register(
+                    "cable_typewriter_hub",
+                    () -> new CableTypewriterHubItem(CableBlocks.CABLE_TYPEWRITER_HUB.get(), new Item.Properties()))
+                    : null;
 
     private CableItems() {
     }

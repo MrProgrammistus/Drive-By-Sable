@@ -13,9 +13,6 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
 
-import java.util.Comparator;
-import java.util.EnumSet;
-
 public final class CableCommonEvents {
     private CableCommonEvents() {
     }
@@ -31,24 +28,35 @@ public final class CableCommonEvents {
         TweakedControllerCableServerHandler.tick(level);
     }
 
+    private static final Direction[] DIRECTIONS = Direction.values();
+
     public static void onNeighborNotify(final BlockEvent.NeighborNotifyEvent event) {
         if (!(event.getLevel() instanceof final ServerLevel level)) {
             return;
         }
 
+        final CableNetworkManager manager = CableNetworkManager.get(level);
         final BlockPos pos = event.getPos();
-        final BlockState state = level.getBlockState(pos);
-        if (state.isSignalSource()) {
-            final int maxSignal = EnumSet.allOf(Direction.class)
-                    .stream()
-                    .map(direction -> state.getSignal(level, pos, direction))
-                    .max(Comparator.naturalOrder())
-                    .orElse(0);
-            CableNetworkManager.trySetSignalAt(level, pos, CableNetworkManager.WORLD_CHANNEL, maxSignal);
+
+        if (manager.hasSinks(pos, CableNetworkManager.WORLD_CHANNEL)) {
+            final BlockState state = level.getBlockState(pos);
+            if (state.isSignalSource()) {
+                int maxSignal = 0;
+                for (final Direction direction : DIRECTIONS) {
+                    final int signal = state.getSignal(level, pos, direction);
+                    if (signal > maxSignal) {
+                        maxSignal = signal;
+                    }
+                }
+                CableNetworkManager.trySetSignalAt(level, pos, CableNetworkManager.WORLD_CHANNEL, maxSignal);
+            }
         }
 
         for (final Direction notifiedSide : event.getNotifiedSides()) {
             final BlockPos neighborPos = pos.relative(notifiedSide);
+            if (!manager.hasSinks(neighborPos, CableNetworkManager.WORLD_CHANNEL)) {
+                continue;
+            }
             if (!level.getBlockState(neighborPos).isSignalSource()) {
                 CableNetworkManager.trySetSignalAt(
                         level,
