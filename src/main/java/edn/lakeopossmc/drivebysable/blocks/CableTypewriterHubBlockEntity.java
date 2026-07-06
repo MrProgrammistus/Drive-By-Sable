@@ -77,7 +77,9 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
 
     @Override
     public void pressKey(final int key) {
-        super.pressKey(key);
+        if (this.getTypewriterEntries().getEntry(key) != null) {
+            super.pressKey(key);
+        }
         if (this.level instanceof final ServerLevel level) {
             CableTypewriterHubServerHandler.receiveKey(level, this.getBlockPos(), key, true);
         }
@@ -85,7 +87,9 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
 
     @Override
     public void releaseKey(final int key) {
-        super.releaseKey(key);
+        if (this.getTypewriterEntries().getEntry(key) != null) {
+            super.releaseKey(key);
+        }
         if (this.level instanceof final ServerLevel level) {
             CableTypewriterHubServerHandler.receiveKey(level, this.getBlockPos(), key, false);
         }
