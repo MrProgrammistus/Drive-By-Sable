@@ -5,16 +5,16 @@ import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import edn.lakeopossmc.drivebysable.CableBlockEntities;
 import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
+import edn.lakeopossmc.drivebysable.cable.CableServerFeedback;
 import edn.lakeopossmc.drivebysable.cable.MultiChannelCableSource;
 import edn.lakeopossmc.drivebysable.cable.graph.CableNetworkNode.CableNetworkSink;
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+// --- SHARED BE FOR CABLE HUB AND ADVANCED HUB --- //
+// * Implements clipboard copy paste for connections
 public class CableHubBlockEntity extends SmartBlockEntity implements ClipboardCloneable {
     public static final String CLIPBOARD_KEY = "drivebysable_hub_connections";
     public static final String CONNECTIONS_KEY = "Connections";
@@ -43,6 +45,7 @@ public class CableHubBlockEntity extends SmartBlockEntity implements ClipboardCl
         return CLIPBOARD_KEY;
     }
 
+    // * Dump every channel and sink into the tag
     @Override
     public boolean writeToClipboard(final HolderLookup.Provider registries, final CompoundTag tag, final Direction face) {
         if (this.level == null) {
@@ -75,16 +78,19 @@ public class CableHubBlockEntity extends SmartBlockEntity implements ClipboardCl
         return true;
     }
 
+    //#region // --- PASTE CONNECTIONS BACK --- //
+    // * Simulate only checks if any channel would match
+    // * Real paste shows error if nothing matched
     @Override
     public boolean readFromClipboard(final HolderLookup.Provider registries, final CompoundTag tag, final Player player, final Direction face, final boolean simulate) {
-        if (this.level == null || !tag.contains(CONNECTIONS_KEY, Tag.TAG_LIST)) {
+        if (this.level == null) {
             return false;
         }
 
-        final ListTag connections = tag.getList(CONNECTIONS_KEY, Tag.TAG_COMPOUND);
-        if (connections.isEmpty()) {
-            return false;
-        }
+        // * No connections key at all means source had nothing to copy, still counts as invalid
+        final ListTag connections = tag.contains(CONNECTIONS_KEY, Tag.TAG_LIST)
+                ? tag.getList(CONNECTIONS_KEY, Tag.TAG_COMPOUND)
+                : new ListTag();
 
         final List<String> ownChannels = this.getBlockState().getBlock() instanceof final MultiChannelCableSource source
                 ? source.cable$getChannels(this.level, this.worldPosition)
@@ -105,10 +111,8 @@ public class CableHubBlockEntity extends SmartBlockEntity implements ClipboardCl
         }
 
         if (!anyChannelMatched) {
-            player.displayClientMessage(
-                    Component.translatable("drivebysable.invalid_op.invalid_paste").withStyle(ChatFormatting.RED),
-                    true
-            );
+            // * Flash the error and play the deny sound
+            CableServerFeedback.showInvalidOperationMessage((ServerPlayer) player, "drivebysable.invalid_op.invalid_paste");
             return false;
         }
 
@@ -136,4 +140,5 @@ public class CableHubBlockEntity extends SmartBlockEntity implements ClipboardCl
 
         return true;
     }
+    //#endregion
 }

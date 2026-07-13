@@ -4,11 +4,11 @@ import dev.simulated_team.simulated.content.blocks.redstone.linked_typewriter.Li
 import edn.lakeopossmc.drivebysable.CableBlockEntities;
 import edn.lakeopossmc.drivebysable.DriveBySableMod;
 import edn.lakeopossmc.drivebysable.cable.CableNetworkManager;
+import edn.lakeopossmc.drivebysable.cable.CableServerFeedback;
 import edn.lakeopossmc.drivebysable.cable.MultiChannelCableSource;
 import edn.lakeopossmc.drivebysable.cable.graph.CableNetworkNode.CableNetworkSink;
 import edn.lakeopossmc.drivebysable.compat.CableTypewriterHubServerHandler;
 import net.createmod.catnip.lang.Lang;
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -18,6 +18,7 @@ import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -28,6 +29,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+// --- BLOCK ENTITY FOR TYPEWRITER HUB --- //
+// * Wraps the typewriter to expose per key channels
 public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
 
     private static final String SINK_KEY = "Sink";
@@ -50,6 +53,8 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
         }
     }
 
+    //#region // --- TRACK WHICH CHANNELS HAVE LINKS --- //
+    // * Only resyncs to client when the set actually changed
     private void updateConnectedChannels(final ServerLevel level) {
         final CableNetworkManager manager = CableNetworkManager.get(level);
         boolean changed = false;
@@ -76,7 +81,9 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
     public boolean hasConnectionForChannel(final String channel) {
         return this.connectedChannels.contains(channel);
     }
+    //#endregion
 
+    // * Remember the client side block entity for key forwarding
     @Override
     public boolean checkAndStartUsing(final UUID userID) {
         final boolean result = super.checkAndStartUsing(userID);
@@ -86,6 +93,7 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
         return result;
     }
 
+    // * Only run vanilla key logic if it has a saved entry, always push to cable
     @Override
     public void pressKey(final int key) {
         if (this.getTypewriterEntries().getEntry(key) != null) {
@@ -106,6 +114,7 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
         }
     }
 
+    // * Clear all channel signals on disconnect
     @Override
     public void disconnectUser() {
         if (this.level != null && this.level.isClientSide) {
@@ -118,6 +127,7 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
         super.disconnectUser();
     }
 
+    // * Sync connected channels to client only, not saved to disk
     @Override
     protected void write(final CompoundTag tag, final HolderLookup.Provider registries,
                          final boolean clientPacket) {
@@ -163,6 +173,7 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
         );
     }
 
+    // * Adds connections on top of the vanilla key binding clipboard data
     @Override
     public boolean writeToClipboard(final HolderLookup.Provider registries, final CompoundTag tag, final Direction face) {
         final boolean wroteKeyBindings = super.writeToClipboard(registries, tag, face);
@@ -197,19 +208,23 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
         return true;
     }
 
+    //#region // --- PASTE CONNECTIONS BACK --- //
+    // * Simulate only checks if any channel would match
+    // * Real paste shows error if nothing matched
     @Override
     public boolean readFromClipboard(final HolderLookup.Provider registries, final CompoundTag tag, final Player player, final Direction face, final boolean simulate) {
-        final boolean readKeyBindings = tag.contains("Keys", Tag.TAG_LIST)
-                && super.readFromClipboard(registries, tag, player, face, simulate);
+        // * Presence of Keys means source was a typewriter hub
+        final boolean sourceIsTypewriter = tag.contains("Keys", Tag.TAG_LIST);
+        final boolean readKeyBindings = sourceIsTypewriter && super.readFromClipboard(registries, tag, player, face, simulate);
 
-        if (this.level == null || !tag.contains(CableHubBlockEntity.CONNECTIONS_KEY, Tag.TAG_LIST)) {
+        if (this.level == null) {
             return readKeyBindings;
         }
 
-        final ListTag connections = tag.getList(CableHubBlockEntity.CONNECTIONS_KEY, Tag.TAG_COMPOUND);
-        if (connections.isEmpty()) {
-            return readKeyBindings;
-        }
+        // * No connections key at all means source had nothing to copy, still counts as invalid
+        final ListTag connections = tag.contains(CableHubBlockEntity.CONNECTIONS_KEY, Tag.TAG_LIST)
+                ? tag.getList(CableHubBlockEntity.CONNECTIONS_KEY, Tag.TAG_COMPOUND)
+                : new ListTag();
 
         final List<String> ownChannels = this.getBlockState().getBlock() instanceof final MultiChannelCableSource source
                 ? source.cable$getChannels(this.level, this.getBlockPos())
@@ -229,12 +244,11 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
             return readKeyBindings || anyChannelMatched;
         }
 
-        if (!anyChannelMatched) {
-            player.displayClientMessage(
-                    Component.translatable("drivebysable.invalid_op.invalid_paste").withStyle(ChatFormatting.RED),
-                    true
-            );
-            return readKeyBindings;
+        // * Typewriter to typewriter never errors
+        if (!anyChannelMatched && !sourceIsTypewriter) {
+            // * Flash the error and play the deny sound
+            CableServerFeedback.showInvalidOperationMessage((ServerPlayer) player, "drivebysable.invalid_op.invalid_paste");
+            return false;
         }
 
         for (final Tag entry : connections) {
@@ -261,6 +275,7 @@ public class CableTypewriterHubBlockEntity extends LinkedTypewriterBlockEntity {
 
         return true;
     }
+    //#endregion
 
     public static CableTypewriterHubBlockEntity getClientInstance() {
         return clientInstance;
