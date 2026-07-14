@@ -229,7 +229,8 @@ public class CableTypewriterHubBlock extends HorizontalDirectionalBlock
     @Override
     protected void onRemove(final BlockState state, final Level level, final BlockPos pos,
                             final BlockState newState, final boolean movedByPiston) {
-        if (!state.is(newState.getBlock()) && level instanceof final ServerLevel serverLevel) {
+        if (!state.is(newState.getBlock()) && level instanceof final ServerLevel serverLevel
+                && !CableNetworkManager.isPendingAssembly(serverLevel, pos)) {
             CableNetworkManager.get(serverLevel).removeAllFromSourceInternal(null, serverLevel, pos);
         }
         super.onRemove(state, level, pos, newState, movedByPiston);

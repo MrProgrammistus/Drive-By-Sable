@@ -57,6 +57,7 @@ public final class CableNetworkManager {
     private final Map<Long, Map<String, Integer>> sourceValues = new HashMap<>();
     private final Map<BlockFace, CableNetworkNode> nodes = new HashMap<>();
     private final Set<BlockFace> staleFaces = new HashSet<>();
+    private final Set<Long> pendingAssemblyPositions = new HashSet<>();
     private final Runnable dirtyMarker;
     private boolean attachedToLevel;
     private boolean graphDirty;
@@ -131,13 +132,27 @@ public final class CableNetworkManager {
     ) {
         final CableNetworkManager originManager = get(originLevel);
         originManager.remapMovedBlockInternal(oldPos, transform);
+        originManager.pendingAssemblyPositions.remove(oldPos.asLong());
 
         if (resultingLevel != originLevel) {
             final CableNetworkManager resultingManager = get(resultingLevel);
             if (resultingManager != originManager) {
                 resultingManager.remapMovedBlockInternal(oldPos, transform);
+                resultingManager.pendingAssemblyPositions.remove(oldPos.asLong());
             }
         }
+    }
+
+    // * Marks positions about to be pulled into a sublevel
+    public static void markPendingAssembly(final ServerLevel level, final Iterable<BlockPos> positions) {
+        final CableNetworkManager manager = get(level);
+        for (final BlockPos pos : positions) {
+            manager.pendingAssemblyPositions.add(pos.asLong());
+        }
+    }
+
+    public static boolean isPendingAssembly(final Level level, final BlockPos pos) {
+        return get(level).pendingAssemblyPositions.contains(pos.asLong());
     }
     //#endregion
     //#region // --- CONNECTION ADD AND REMOVE --- //

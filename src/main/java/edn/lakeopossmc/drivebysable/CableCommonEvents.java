@@ -74,10 +74,15 @@ public final class CableCommonEvents {
     }
     //#endregion
 
-    // * Drop connections when a source is mined
+    // * Drop connections when a source is mined/moved by piston
+    // * Sublevel assembly moves are remapped instead
     @SubscribeEvent
     public static void onBlockBreak(final BlockEvent.BreakEvent event) {
         if (event.getLevel() instanceof final ServerLevel level) {
+            if (CableNetworkManager.isPendingAssembly(level, event.getPos())) {
+                return;
+            }
+
             final ServerPlayer player = event.getPlayer() instanceof final ServerPlayer serverPlayer ? serverPlayer : null;
             CableNetworkManager.get(level).removeAllFromSourceInternal(player, level, event.getPos());
         }

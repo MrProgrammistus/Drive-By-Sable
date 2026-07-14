@@ -41,19 +41,19 @@ public class NetworkBackupDriveBlock extends Block implements EntityBlock {
     // --- MAP BLOCK ENTITY TO CORRECT POS AND LEVEL --- //
     @Override
     public <T extends BlockEntity> @Nullable BlockEntityTicker<T> getTicker(
-        final Level level,
-        final BlockState state,
-        final BlockEntityType<T> blockEntityType
+            final Level level,
+            final BlockState state,
+            final BlockEntityType<T> blockEntityType
     ) {
         if (level.isClientSide() || blockEntityType != CableBlockEntities.BACKUP_DRIVE.get()) {
             return null;
         }
 
         return (tickLevel, tickPos, tickState, blockEntity) -> NetworkBackupDriveBlockEntity.serverTick(
-            tickLevel,
-            tickPos,
-            tickState,
-            (NetworkBackupDriveBlockEntity) blockEntity
+                tickLevel,
+                tickPos,
+                tickState,
+                (NetworkBackupDriveBlockEntity) blockEntity
         );
     }
 
@@ -61,7 +61,8 @@ public class NetworkBackupDriveBlock extends Block implements EntityBlock {
     @Override
     protected void onRemove(final BlockState state, final Level level, final BlockPos pos,
                             final BlockState newState, final boolean movedByPiston) {
-        if (!state.is(newState.getBlock()) && level instanceof final ServerLevel serverLevel) {
+        if (!state.is(newState.getBlock()) && level instanceof final ServerLevel serverLevel
+                && !CableNetworkManager.isPendingAssembly(serverLevel, pos)) {
             CableNetworkManager.get(serverLevel).removeAllFromSourceInternal(null, serverLevel, pos);
         }
         super.onRemove(state, level, pos, newState, movedByPiston);

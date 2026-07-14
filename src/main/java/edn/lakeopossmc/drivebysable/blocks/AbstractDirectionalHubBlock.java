@@ -173,8 +173,9 @@ public abstract class AbstractDirectionalHubBlock extends FaceAttachedHorizontal
     @Override
     protected void onRemove(final BlockState state, final Level level, final BlockPos pos,
                             final BlockState newState, final boolean movedByPiston) {
-        // * If removed via destroy or movement
-        if (!state.is(newState.getBlock()) && level instanceof final ServerLevel serverLevel) {
+        // * If removed via destroy or movement, but not mid assembly
+        if (!state.is(newState.getBlock()) && level instanceof final ServerLevel serverLevel
+                && !CableNetworkManager.isPendingAssembly(serverLevel, pos)) {
             // * Kill associated connections
             CableNetworkManager.get(serverLevel).removeAllFromSourceInternal(null, serverLevel, pos);
         }

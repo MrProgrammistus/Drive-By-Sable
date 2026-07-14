@@ -12,16 +12,30 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 // --- KEEP CABLE NETWORK IN SYNC WITH SUBLEVEL MOVES --- //
 @Mixin(value = SubLevelAssemblyHelper.class, remap = false)
 public abstract class MixinSubLevelAssemblyHelper {
+    // * Mark pos first so block break skips instead of wiping connections
+    @Inject(
+            method = "moveBlocks(Lnet/minecraft/server/level/ServerLevel;Ldev/ryanhcode/sable/api/SubLevelAssemblyHelper$AssemblyTransform;Ljava/lang/Iterable;)V",
+            at = @At("HEAD")
+    )
+    private static void drivebysable$markPendingAssembly(
+            final ServerLevel originLevel,
+            final SubLevelAssemblyHelper.AssemblyTransform transform,
+            final Iterable<BlockPos> movedBlocks,
+            final CallbackInfo ci
+    ) {
+        CableNetworkManager.markPendingAssembly(originLevel, movedBlocks);
+    }
+
     // * Remap each moved block after sable finishes moving it
     @Inject(
-        method = "moveBlocks(Lnet/minecraft/server/level/ServerLevel;Ldev/ryanhcode/sable/api/SubLevelAssemblyHelper$AssemblyTransform;Ljava/lang/Iterable;)V",
-        at = @At("RETURN")
+            method = "moveBlocks(Lnet/minecraft/server/level/ServerLevel;Ldev/ryanhcode/sable/api/SubLevelAssemblyHelper$AssemblyTransform;Ljava/lang/Iterable;)V",
+            at = @At("RETURN")
     )
     private static void drivebysable$remapCableNetworkAfterSableMoves(
-        final ServerLevel originLevel,
-        final SubLevelAssemblyHelper.AssemblyTransform transform,
-        final Iterable<BlockPos> movedBlocks,
-        final CallbackInfo ci
+            final ServerLevel originLevel,
+            final SubLevelAssemblyHelper.AssemblyTransform transform,
+            final Iterable<BlockPos> movedBlocks,
+            final CallbackInfo ci
     ) {
         final ServerLevel resultingLevel = transform.getLevel();
         for (final BlockPos oldPos : movedBlocks) {
